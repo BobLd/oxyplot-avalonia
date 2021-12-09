@@ -13,6 +13,7 @@ namespace OxyPlot.Avalonia
     using global::Avalonia.Controls;
     using global::Avalonia.LogicalTree;
     using global::Avalonia.VisualTree;
+    using OxyPlot.Legends;
     using System.Collections.ObjectModel;
     using System.Collections.Specialized;
     using System.Linq;
@@ -273,7 +274,8 @@ namespace OxyPlot.Avalonia
             internalModel.Legends.Clear();
             foreach (var l in Legends)
             {
-                internalModel.Legends.Add(l.CreateModel());
+                // TODO
+                //internalModel.Legends.Add(l.CreateModel());
             }
         }
     }

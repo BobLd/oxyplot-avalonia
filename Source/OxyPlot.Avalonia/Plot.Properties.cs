@@ -13,6 +13,7 @@ using Avalonia.Media;
 namespace OxyPlot.Avalonia
 {
     using global::Avalonia.Metadata;
+    using OxyPlot.Legends;
     using System;
     using System.Collections.Generic;
     using System.Collections.ObjectModel;
