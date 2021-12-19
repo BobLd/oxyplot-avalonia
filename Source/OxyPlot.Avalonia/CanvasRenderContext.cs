@@ -57,7 +57,7 @@ namespace OxyPlot.Avalonia
         /// The brush cache.
         /// </summary>
         private readonly Dictionary<OxyColor, IBrush> brushCache = new Dictionary<OxyColor, IBrush>();
-        
+
         /// <summary>
         /// The canvas.
         /// </summary>
@@ -72,7 +72,7 @@ namespace OxyPlot.Avalonia
         /// The current tool tip
         /// </summary>
         private string currentToolTip;
-        
+
         /// <summary>
         /// Initializes a new instance of the <see cref="CanvasRenderContext" /> class.
         /// </summary>
@@ -80,7 +80,7 @@ namespace OxyPlot.Avalonia
         public CanvasRenderContext(Canvas canvas)
         {
             this.canvas = canvas;
-            UseStreamGeometry = false; // Temporarily disabled because of Avalonia bug
+            UseStreamGeometry = true;
             RendersToScreen = true;
             BalancedLineDrawingThicknessLimit = 3.5;
         }
@@ -98,27 +98,23 @@ namespace OxyPlot.Avalonia
         public bool UseStreamGeometry { get; set; }
 
         ///<inheritdoc/>
-        public void DrawEllipse(OxyRect rect,
+        public override void DrawEllipse(OxyRect rect,
             OxyColor fill,
             OxyColor stroke,
             double thickness,
             EdgeRenderingMode edgeRenderingMode)
         {
-            var e = CreateAndAdd<Ellipse>(rect.Left, rect.Top);
-            SetStroke(e, stroke, thickness, edgeRenderingMode);
-            if (fill.IsVisible())
+            var path = CreateAndAdd<Path>();
+            SetStroke(path, stroke, thickness, edgeRenderingMode);
+            if (!fill.IsUndefined())
             {
-                e.Fill = GetCachedBrush(fill);
+                path.Fill = GetCachedBrush(fill);
             }
-
-            e.Width = rect.Width;
-            e.Height = rect.Height;
-            Canvas.SetLeft(e, rect.Left);
-            Canvas.SetTop(e, rect.Top);
+            path.Data = new EllipseGeometry(ToRect(rect));
         }
 
         ///<inheritdoc/>
-        public void DrawEllipses(IList<OxyRect> rectangles,
+        public override void DrawEllipses(IList<OxyRect> rectangles,
             OxyColor fill,
             OxyColor stroke,
             double thickness,
@@ -314,6 +310,11 @@ namespace OxyPlot.Avalonia
                     }
                 }
 
+                if (usg)
+                {
+                    sgc.EndFigure(true);
+                }
+
                 count++;
 
                 // Must limit the number of figures, otherwise drawing errors...
@@ -361,18 +362,13 @@ namespace OxyPlot.Avalonia
             double thickness,
             EdgeRenderingMode edgeRenderingMode)
         {
-            var e = CreateAndAdd<Rectangle>(rect.Left, rect.Top);
-            SetStroke(e, stroke, thickness, edgeRenderingMode, LineJoin.Miter, null, 0);
-
+            var path = CreateAndAdd<Path>();
+            SetStroke(path, stroke, thickness, edgeRenderingMode);
             if (!fill.IsUndefined())
             {
-                e.Fill = GetCachedBrush(fill);
+                path.Fill = GetCachedBrush(fill);
             }
-
-            e.Width = rect.Width;
-            e.Height = rect.Height;
-            Canvas.SetLeft(e, rect.Left);
-            Canvas.SetTop(e, rect.Top);
+            path.Data = new RectangleGeometry(ToRect(rect));
         }
 
         /// <summary>
@@ -389,10 +385,8 @@ namespace OxyPlot.Avalonia
             double thickness,
             EdgeRenderingMode edgeRenderingMode)
         {
-            foreach (var rect in rectangles)
-            {
-                DrawRectangle(rect, fill, stroke, thickness, edgeRenderingMode);
-            }
+            var polys = rectangles.Select(r => (IList<ScreenPoint>)RectangleToPolygon(r)).ToList();
+            DrawPolygons(polys, fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
         }
 
         /// <summary>
@@ -437,7 +431,7 @@ namespace OxyPlot.Avalonia
             {
                 tb.FontWeight = GetFontWeight(fontWeight);
             }
-            
+
             double dx = 0;
             double dy = 0;
 
@@ -519,7 +513,7 @@ namespace OxyPlot.Avalonia
             }
 
             var tb = new TextBlock { Text = text };
-            
+
             if (fontFamily != null)
             {
                 tb.FontFamily = fontFamily;
@@ -544,7 +538,7 @@ namespace OxyPlot.Avalonia
         /// Sets the tool tip for the following items.
         /// </summary>
         /// <param name="text">The text in the tool tip.</param>
-        public void SetToolTip(string text)
+        public override void SetToolTip(string text)
         {
             currentToolTip = text;
         }
@@ -563,7 +557,7 @@ namespace OxyPlot.Avalonia
         /// <param name="destHeight">The height of the drawn image.</param>
         /// <param name="opacity">The opacity.</param>
         /// <param name="interpolate">interpolate if set to <c>true</c>.</param>
-        public void DrawImage(
+        public override void DrawImage(
             OxyImage source,
             double srcX,
             double srcY,
@@ -1006,6 +1000,22 @@ namespace OxyPlot.Avalonia
         private static List<Point> ToPointCollection(IEnumerable<ScreenPoint> points, bool aliased)
         {
             return new List<Point>(aliased ? points.Select(ToPixelAlignedPoint) : points.Select(ToPoint));
+        }
+
+        /// <summary>
+        /// Converts an <see cref="OxyRect"/> to an array of <see cref="ScreenPoint"/>.
+        /// </summary>
+        /// <param name="rect">The rectangle.</param>
+        /// <returns>A <see cref="ScreenPoint[]"/>.</returns>
+        private static ScreenPoint[] RectangleToPolygon(OxyRect rect)
+        {
+            return new ScreenPoint[]
+            {
+                rect.BottomLeft,
+                rect.TopLeft,
+                rect.TopRight,
+                rect.BottomRight,
+            };
         }
     }
 }
