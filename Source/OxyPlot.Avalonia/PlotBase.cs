@@ -7,8 +7,6 @@
 // </summary>
 // --------------------------------------------------------------------------------------------------------------------
 
-using Avalonia.Media;
-
 namespace OxyPlot.Avalonia
 {
     using global::Avalonia;
@@ -99,7 +97,7 @@ namespace OxyPlot.Avalonia
             trackerDefinitions = new ObservableCollection<TrackerDefinition>();
             this.GetObservable(TransformedBoundsProperty).Subscribe(bounds => OnSizeChanged(this, bounds?.Bounds.Size ?? new Size()));
         }
-        
+
         /// <summary>
         /// Gets or sets a value indicating whether to disconnect the canvas while updating.
         /// </summary>
@@ -195,10 +193,7 @@ namespace OxyPlot.Avalonia
         /// <param name="delta">The delta.</param>
         public void PanAllAxes(Vector delta)
         {
-            if (ActualModel != null)
-            {
-                ActualModel.PanAllAxes(delta.X, delta.Y);
-            }
+            ActualModel?.PanAllAxes(delta.X, delta.Y);
 
             InvalidatePlot(false);
         }
@@ -209,10 +204,7 @@ namespace OxyPlot.Avalonia
         /// <param name="factor">The zoom factor.</param>
         public void ZoomAllAxes(double factor)
         {
-            if (ActualModel != null)
-            {
-                ActualModel.ZoomAllAxes(factor);
-            }
+            ActualModel?.ZoomAllAxes(factor);
 
             InvalidatePlot(false);
         }
@@ -222,10 +214,7 @@ namespace OxyPlot.Avalonia
         /// </summary>
         public void ResetAllAxes()
         {
-            if (ActualModel != null)
-            {
-                ActualModel.ResetAllAxes();
-            }
+            ActualModel?.ResetAllAxes();
 
             InvalidatePlot(false);
         }
@@ -447,14 +436,12 @@ namespace OxyPlot.Avalonia
         {
             var container = obj.VisualParent;
 
-            var contentPresenter = container as ContentPresenter;
-            if (contentPresenter != null)
+            if (container is ContentPresenter contentPresenter)
             {
                 container = GetRelevantParent<T>(contentPresenter);
             }
 
-            var panel = container as Panel;
-            if (panel != null)
+            if (container is Panel panel)
             {
                 container = GetRelevantParent<ScrollViewer>(panel);
             }
