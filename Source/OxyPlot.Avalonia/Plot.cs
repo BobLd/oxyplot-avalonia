@@ -109,6 +109,7 @@ namespace OxyPlot.Avalonia
         /// </summary>
         protected void OnAppearanceChanged()
         {
+            UpdateModel(false);
             InvalidatePlot(false);
         }
 
