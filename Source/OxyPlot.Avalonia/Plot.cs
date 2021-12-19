@@ -275,8 +275,7 @@ namespace OxyPlot.Avalonia
             internalModel.Legends.Clear();
             foreach (var l in Legends)
             {
-                // TODO
-                //internalModel.Legends.Add(l.CreateModel());
+                internalModel.Legends.Add(l.CreateModel());
             }
         }
     }
