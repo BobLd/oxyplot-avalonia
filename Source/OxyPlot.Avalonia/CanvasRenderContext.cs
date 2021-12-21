@@ -1109,12 +1109,13 @@ namespace OxyPlot.Avalonia
             //https://math.stackexchange.com/questions/22064/calculating-a-point-that-lies-on-an-ellipse-given-an-angle
             var a = rect.Width / 2.0;
             var b = rect.Height / 2.0;
+            double smoothing = b / a;
 
-            for (int i = 0; i < 2 * step-1; i++)
+            for (int i = 0; i < 2 * step - 1; i++)
             {
                 double pct = i / (double)n;
                 double theta = pct * twoPi;
-                var tan = Math.Tan(theta);
+                var tan = Math.Tan(theta) * smoothing;
                 double x = (a * b) / Math.Sqrt(b * b + a * a * tan * tan);
 
                 if (-halfPi > theta || theta > halfPi)
@@ -1124,7 +1125,7 @@ namespace OxyPlot.Avalonia
 
                 double y = x * tan;
                 points[i] = new ScreenPoint(rect.Center.X + x, rect.Center.Y + y);
-                points[i + step * 2-1] = new ScreenPoint(rect.Center.X - x, rect.Center.Y - y);
+                points[i + step * 2 - 1] = new ScreenPoint(rect.Center.X - x, rect.Center.Y - y);
             }
             return points;
         }
