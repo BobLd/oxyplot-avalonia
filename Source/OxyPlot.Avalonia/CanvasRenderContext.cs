@@ -94,6 +94,7 @@ namespace OxyPlot.Avalonia
         /// <remarks>The XamlWriter does not serialize StreamGeometry, so set this to <c>false</c> if you want to export to XAML. Using stream geometry seems to be slightly faster than using path geometry.</remarks>
         public bool UseStreamGeometry { get; set; }
 
+        const int ellipseLineCount = 10;
         ///<inheritdoc/>
         public override void DrawEllipse(OxyRect rect,
             OxyColor fill,
@@ -101,6 +102,12 @@ namespace OxyPlot.Avalonia
             double thickness,
             EdgeRenderingMode edgeRenderingMode)
         {
+            if (UseStreamGeometry)
+            {
+                DrawPolygon(EllipseToPolygon(rect, ellipseLineCount), fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
+                return;
+            }
+
             var path = CreateAndAdd<Path>();
             SetStroke(path, stroke, thickness, edgeRenderingMode);
             if (!fill.IsUndefined())
@@ -117,6 +124,12 @@ namespace OxyPlot.Avalonia
             double thickness,
             EdgeRenderingMode edgeRenderingMode)
         {
+            if (UseStreamGeometry)
+            {
+                DrawPolygonsByStreamGeometry(rectangles.Select(rect => EllipseToPolygon(rect, ellipseLineCount)).ToList(), fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
+                return;
+            }
+
             foreach (var rect in rectangles)
             {
                 DrawEllipse(rect, fill, stroke, thickness, edgeRenderingMode);
@@ -1068,6 +1081,52 @@ namespace OxyPlot.Avalonia
                 rect.TopRight,
                 rect.BottomRight,
             };
+        }
+
+        /// <summary>
+        /// Converts an <see cref="OxyRect"/> to an ellipse represented by array of <see cref="ScreenPoint"/>.
+        /// </summary>
+        /// <param name="rect">The rectangle defining the ellipse.</param>
+        /// <param name="n"></param>
+        /// <returns>The ellipse.</returns>
+        /// <exception cref="ArgumentOutOfRangeException"></exception>
+        private static IList<ScreenPoint> EllipseToPolygon(OxyRect rect, int n)
+        {
+            if (n < 4)
+            {
+                throw new ArgumentOutOfRangeException();
+            }
+            else if (n == 4)
+            {
+                return RectangleToPolygon(rect);
+            }
+
+            const double halfPi = Math.PI / 2.0;
+            const double twoPi = 2.0 * Math.PI;
+
+            int step = (int)Math.Ceiling(n / 4.0);
+            var points = new ScreenPoint[step * 4 - 2];
+            //https://math.stackexchange.com/questions/22064/calculating-a-point-that-lies-on-an-ellipse-given-an-angle
+            var a = rect.Width / 2.0;
+            var b = rect.Height / 2.0;
+
+            for (int i = 0; i < 2 * step-1; i++)
+            {
+                double pct = i / (double)n;
+                double theta = pct * twoPi;
+                var tan = Math.Tan(theta);
+                double x = (a * b) / Math.Sqrt(b * b + a * a * tan * tan);
+
+                if (-halfPi > theta || theta > halfPi)
+                {
+                    x = -x;
+                }
+
+                double y = x * tan;
+                points[i] = new ScreenPoint(rect.Center.X + x, rect.Center.Y + y);
+                points[i + step * 2-1] = new ScreenPoint(rect.Center.X - x, rect.Center.Y - y);
+            }
+            return points;
         }
     }
 }
