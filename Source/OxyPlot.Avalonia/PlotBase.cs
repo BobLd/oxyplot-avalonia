@@ -103,6 +103,19 @@ namespace OxyPlot.Avalonia
         /// <value><c>true</c> if canvas should be disconnected while updating; otherwise, <c>false</c>.</value>
         public bool DisconnectCanvasWhileUpdating { get; set; }
 
+        public bool IsManipulating
+        {
+            get
+            {
+                return renderContext.IsManipulating;
+            }
+
+            set
+            {
+                renderContext.IsManipulating = value;
+            }
+        }
+
         /// <summary>
         /// Gets the actual model in the view.
         /// </summary>

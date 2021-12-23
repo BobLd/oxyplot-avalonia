@@ -14,6 +14,7 @@ namespace OxyPlot.Avalonia
     using global::Avalonia.Controls.Shapes;
     using global::Avalonia.Media;
     using global::Avalonia.Media.Imaging;
+    using OxyPlot.Avalonia.Utilities;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -94,7 +95,10 @@ namespace OxyPlot.Avalonia
         /// <remarks>The XamlWriter does not serialize StreamGeometry, so set this to <c>false</c> if you want to export to XAML. Using stream geometry seems to be slightly faster than using path geometry.</remarks>
         public bool UseStreamGeometry { get; set; }
 
-        const int ellipseLineCount = 10;
+        public bool IsManipulating { get; set; }
+
+        const int ellipseLineCount = 24;
+
         ///<inheritdoc/>
         public override void DrawEllipse(OxyRect rect,
             OxyColor fill,
@@ -104,7 +108,14 @@ namespace OxyPlot.Avalonia
         {
             if (UseStreamGeometry)
             {
-                DrawPolygon(EllipseToPolygon(rect, ellipseLineCount), fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
+                if (IsManipulating)
+                {
+                    DrawPolygon(EllipseToPolygon(rect, ellipseLineCount / 2), fill, stroke, thickness, EdgeRenderingMode.PreferSpeed, null, LineJoin.Miter);
+                }
+                else
+                {
+                    DrawPolygon(EllipseToPolygon(rect, ellipseLineCount), fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
+                }
                 return;
             }
 
@@ -126,7 +137,14 @@ namespace OxyPlot.Avalonia
         {
             if (UseStreamGeometry)
             {
-                DrawPolygonsByStreamGeometry(rectangles.Select(rect => EllipseToPolygon(rect, ellipseLineCount)).ToList(), fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
+                if (IsManipulating)
+                {
+                    DrawPolygonsByStreamGeometry(rectangles.Select(rect => EllipseToPolygon(rect, ellipseLineCount / 2)).ToList(), fill, stroke, thickness, EdgeRenderingMode.PreferSpeed, null, LineJoin.Miter);
+                }
+                else
+                {
+                    DrawPolygonsByStreamGeometry(rectangles.Select(rect => EllipseToPolygon(rect, ellipseLineCount)).ToList(), fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
+                }
                 return;
             }
 
@@ -1102,22 +1120,24 @@ namespace OxyPlot.Avalonia
             }
 
             const double halfPi = Math.PI / 2.0;
-            const double twoPi = 2.0 * Math.PI;
+            const double twoPi = Math.PI * 2.0;
 
-            int step = (int)Math.Ceiling(n / 4.0);
-            var points = new ScreenPoint[step * 4 - 2];
+            int step = (int)Math.Ceiling(n / 2.0);
+            var points = new ScreenPoint[step * 2];
             //https://math.stackexchange.com/questions/22064/calculating-a-point-that-lies-on-an-ellipse-given-an-angle
             var a = rect.Width / 2.0;
             var b = rect.Height / 2.0;
             double smoothing = b / a;
 
-            for (int i = 0; i < 2 * step - 1; i++)
+            points[0] = new ScreenPoint(rect.Center.X + a, rect.Center.Y);
+            points[step] = new ScreenPoint(rect.Center.X - a, rect.Center.Y);
+
+            for (int i = 1; i < step; i++)
             {
                 double pct = i / (double)n;
                 double theta = pct * twoPi;
                 var tan = Math.Tan(theta) * smoothing;
                 double x = (a * b) / Math.Sqrt(b * b + a * a * tan * tan);
-
                 if (-halfPi > theta || theta > halfPi)
                 {
                     x = -x;
@@ -1125,7 +1145,7 @@ namespace OxyPlot.Avalonia
 
                 double y = x * tan;
                 points[i] = new ScreenPoint(rect.Center.X + x, rect.Center.Y + y);
-                points[i + step * 2 - 1] = new ScreenPoint(rect.Center.X - x, rect.Center.Y - y);
+                points[i + step] = new ScreenPoint(rect.Center.X - x, rect.Center.Y - y);
             }
             return points;
         }
