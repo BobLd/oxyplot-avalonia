@@ -136,20 +136,96 @@ namespace OxyPlot.Avalonia
         {
             if (UseStreamGeometry)
             {
-                if (IsManipulating)
-                {
-                    DrawPolygonsByStreamGeometry(rectangles.Select(rect => EllipseToPolygon(rect, ellipseLineCount / 2)).ToList(), fill, stroke, thickness, EdgeRenderingMode.PreferSpeed, null, LineJoin.Miter);
-                }
-                else
-                {
-                    DrawPolygonsByStreamGeometry(rectangles.Select(rect => EllipseToPolygon(rect, ellipseLineCount)).ToList(), fill, stroke, thickness, edgeRenderingMode, null, LineJoin.Miter);
-                }
+                DrawEllipesByStreamGeometry(rectangles, fill, stroke, thickness, EdgeRenderingMode.PreferSpeed, null, LineJoin.Miter);
                 return;
             }
 
             foreach (var rect in rectangles)
             {
                 DrawEllipse(rect, fill, stroke, thickness, edgeRenderingMode);
+            }
+        }
+
+        private void DrawEllipesByStreamGeometry(
+            IList<OxyRect> rects,
+            OxyColor fill,
+            OxyColor stroke,
+            double thickness,
+            EdgeRenderingMode edgeRenderingMode,
+            double[] dashArray,
+            LineJoin lineJoin)
+        {
+            // https://stackoverflow.com/questions/2979834/how-to-draw-a-full-ellipse-in-a-streamgeometry-in-wpf
+            double ControlPointRatio = (Math.Sqrt(2) - 1.0) * 4.0 / 3.0;
+
+            Path path = null;
+            StreamGeometry streamGeometry = null;
+            StreamGeometryContext sgc = null;
+            var count = 0;
+
+            bool isDefined = !fill.IsUndefined();
+            IBrush cachedBrush = null;
+            if (isDefined)
+            {
+                cachedBrush = GetCachedBrush(fill);
+            }
+
+            foreach (var rect in rects)
+            {
+                if (path == null)
+                {
+                    path = CreateAndAdd<Path>();
+                    SetStroke(path, stroke, thickness, edgeRenderingMode, lineJoin, dashArray, 0);
+                    if (isDefined)
+                    {
+                        path.Fill = cachedBrush;
+                    }
+
+                    streamGeometry = new StreamGeometry();
+                    sgc = streamGeometry.Open();
+                    sgc.SetFillRule(FillRule.NonZero);
+                }
+
+                var centerX = rect.Center.X;
+                var centerY = rect.Center.Y;
+                var radiusX = rect.Width / 2.0;
+                var radiusY = rect.Height / 2.0;
+
+                var x0 = centerX - radiusX;
+                var x1 = centerX - radiusX * ControlPointRatio;
+                var x2 = centerX;
+                var x3 = centerX + radiusX * ControlPointRatio;
+                var x4 = centerX + radiusX;
+
+                var y0 = centerY - radiusY;
+                var y1 = centerY - radiusY * ControlPointRatio;
+                var y2 = centerY;
+                var y3 = centerY + radiusY * ControlPointRatio;
+                var y4 = centerY + radiusY;
+
+                sgc.BeginFigure(new Point(x2, y0), isDefined);
+                sgc.CubicBezierTo(new Point(x3, y0), new Point(x4, y1), new Point(x4, y2));
+                sgc.CubicBezierTo(new Point(x4, y3), new Point(x3, y4), new Point(x2, y4));
+                sgc.CubicBezierTo(new Point(x1, y4), new Point(x0, y3), new Point(x0, y2));
+                sgc.CubicBezierTo(new Point(x0, y1), new Point(x1, y0), new Point(x2, y0));
+                sgc.EndFigure(true);
+
+                count++;
+
+                // Must limit the number of figures, otherwise drawing errors...
+                if (count > MaxFiguresPerGeometry)
+                {
+                    sgc.Dispose();
+                    path.Data = streamGeometry;
+                    path = null;
+                    count = 0;
+                }
+            }
+
+            if (path != null)
+            {
+                sgc.Dispose();
+                path.Data = streamGeometry;
             }
         }
 
