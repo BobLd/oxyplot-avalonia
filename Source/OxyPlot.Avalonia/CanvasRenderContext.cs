@@ -14,7 +14,6 @@ namespace OxyPlot.Avalonia
     using global::Avalonia.Controls.Shapes;
     using global::Avalonia.Media;
     using global::Avalonia.Media.Imaging;
-    using OxyPlot.Avalonia.Utilities;
     using System;
     using System.Collections.Generic;
     using System.IO;
